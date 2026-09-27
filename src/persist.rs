@@ -141,6 +141,13 @@ pub fn cleanup_stale() {
     }
 }
 
+/// 删除本会话自己的标记(`session-<本进程 pid>`)。会话正常收尾时用。
+/// 与 `session_stop` 不同:只删自己,绝不误删其他会话的标记 —— 否则一个
+/// 会话退出会把并发的另一个会话也顶掉(它的主循环发现标记消失就会收尾)。
+pub fn session_clear_own() {
+    let _ = std::fs::remove_file(session_marker());
+}
+
 /// 删除全部会话标记(`rscat -c`:取消所有会话)。
 pub fn session_stop() {
     for m in session_markers() {
@@ -151,4 +158,41 @@ pub fn session_stop() {
 /// 是否正运行在 rscat 彩虹会话的子 shell 里(防嵌套)。
 pub fn inside_session() -> bool {
     std::env::var("RSCAT_SESSION").as_deref() == Ok("1")
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    /// 真实文件系统验证标记删除语义(XDG_CONFIG_HOME 指向临时目录):
+    ///   - `session_clear_own` 只删自己的标记(并发会话不被误杀);
+    ///   - `session_stop`(`-c`)删全部。
+    #[test]
+    fn clear_own_keeps_others_stop_removes_all() {
+        let old = std::env::var_os("XDG_CONFIG_HOME");
+        let dir = std::env::temp_dir().join(format!("rscat-persist-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::env::set_var("XDG_CONFIG_HOME", &dir);
+
+        session_start().expect("session_start");
+        let own = session_marker();
+        assert!(own.exists(), "own marker must exist after session_start");
+
+        // 模拟另一个并发会话的标记
+        let other = config_dir().join("session-999999");
+        std::fs::write(&other, "999999 1").unwrap();
+
+        session_clear_own();
+        assert!(!own.exists(), "clear_own must remove the own marker");
+        assert!(other.exists(), "clear_own must not touch another session");
+
+        session_stop();
+        assert!(!other.exists(), "session_stop must remove every marker");
+
+        match old {
+            Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
+            None => std::env::remove_var("XDG_CONFIG_HOME"),
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

@@ -58,7 +58,7 @@ picture survives and the text is rainbow.
 Three ways to use it:
 
 ```bash
-rscat logo.png          # image mode: draw a PNG/JPEG/GIF directly
+rscat logo.png          # image mode: draw a PNG/JPEG/GIF/BMP/WebP directly
 some-command | rscat    # filter mode: rainbowize a stream, images intact
 rscat -e fastfetch      # run mode: run a command in a pty, images + rainbow together
 ```
@@ -92,7 +92,7 @@ rscat -e fastfetch      # run mode: run a command in a pty, images + rainbow tog
 | **Picture cells preserved** | Block characters carrying their own colour — how `fastfetch`, `chafa` and friends draw images in a text terminal — pass through untouched. Text, including ASCII-art logos, still gets the rainbow. |
 | **Cross-platform** | One codebase, four platforms: Linux, macOS, FreeBSD, Windows. Native installers and packages for each. |
 | **Run mode** | `rscat -e <command>` — run anything in a pty and get images *and* rainbow text, no wrapper needed, no per-tool flags. |
-| **Image mode** | `rscat logo.png` — display a local image directly (PNG/JPEG/GIF). |
+| **Image mode** | `rscat logo.png` — display a local image directly (PNG/JPEG/GIF/BMP/WebP). |
 | **Rainbow session** | `rscat -a` makes every later command rainbow; `rscat -c` cancels. |
 | **Multilingual** | English / 简体中文 / 繁體中文 / 日本語, follows system `LANG`, or `--lang`. |
 | **Calling-shell detection** | `-e`/`-a` find the real shell in the parent chain, so a fetch tool's SHELL module shows fish/zsh/bash instead of `rscat`. |
@@ -334,8 +334,9 @@ terminal reply can never deadlock.
 ## Development
 
 ```bash
-cargo test          # 24 tests: rainbow vectors, base64, PNG header, magic
-                    # numbers, filter, PTY (termios + query interception)
+cargo test          # 28 unit + 5 CLI tests: rainbow vectors, base64, PNG header,
+                    # magic numbers, filter, PTY (termios + query interception),
+                    # BMP/WebP decode, session markers, end-to-end CLI
 cargo build --release
 ```
 
@@ -345,6 +346,7 @@ src/            main.rs (CLI) rainbow.rs filter.rs image.rs shell_detect.rs
                 help_{en,zh_cn,zh_tw,ja}.txt
 shells/         rscat.{bash,zsh,sh,fish,ps1,cmd} — the --init sources, and what
                 the Linux/FreeBSD packages wire into your shells on install
+tests/          cli.rs — end-to-end tests that run the built binary
 build/          packaging recipes + per-platform hand-off prompts (git-ignored)
 ass/            artwork
 ```

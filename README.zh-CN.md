@@ -50,7 +50,7 @@ my-plot-script.py | rscat
 三种用法:
 
 ```bash
-rscat logo.png          # 图片模式:直接画出 PNG/JPEG/GIF
+rscat logo.png          # 图片模式:直接画出 PNG/JPEG/GIF/BMP/WebP
 some-command | rscat    # 过滤模式:彩虹化输出流,图片不被破坏
 rscat -e fastfetch      # 运行模式:在伪终端里跑命令,图片与彩虹兼得
 ```
@@ -82,7 +82,7 @@ rscat -e fastfetch      # 运行模式:在伪终端里跑命令,图片与彩虹�
 | **图片单元保持原样** | 自带颜色的块元素字符——`fastfetch`、`chafa` 等在文本终端里画图的方式——原样直通。普通文字(含 ASCII art logo)照常上彩虹。 |
 | **跨平台** | 一套代码,四个平台:Linux、macOS、FreeBSD、Windows,各有原生安装包。 |
 | **运行模式** | `rscat -e <命令>`——在伪终端里跑任何东西,**图片与彩虹字兼得**,无需包装脚本、无需每个工具单独加旗标。 |
-| **图片模式** | `rscat logo.png`——直接显示本地图片(PNG/JPEG/GIF)。 |
+| **图片模式** | `rscat logo.png`——直接显示本地图片(PNG/JPEG/GIF/BMP/WebP)。 |
 | **彩虹会话** | `rscat -a` 之后所有命令都是彩虹输出;`rscat -c` 取消。 |
 | **多语言** | 英文 / 简体中文 / 繁体中文 / 日文,跟随系统 `LANG`,也可 `--lang` 指定。 |
 | **调用 shell 检测** | `-e`/`-a` 能从父进程链里找到真实 shell,fetch 工具的 SHELL 模块显示 fish/zsh/bash 本尊而非 `rscat`。 |
@@ -292,8 +292,9 @@ rscat -e fastfetch
 ## 开发
 
 ```bash
-cargo test          # 24 项:彩虹向量、base64、PNG 头、魔数、过滤器、
-                    # PTY(termios + 终端查询代答)
+cargo test          # 28 个单元 + 5 个 CLI 测试:彩虹向量、base64、PNG 头、魔数、
+                    # 过滤器、PTY(termios + 终端查询代答)、BMP/WebP 解码、
+                    # 会话标记、端到端 CLI
 cargo build --release
 ```
 
@@ -303,6 +304,7 @@ src/            main.rs(CLI) rainbow.rs filter.rs image.rs shell_detect.rs
                 help_{en,zh_cn,zh_tw,ja}.txt
 shells/         rscat.{bash,zsh,sh,fish,ps1,cmd} —— --init 的正本,也是
                 Linux/FreeBSD 包在安装时接进你 shell 的内容
+tests/          cli.rs —— 运行编译后二进制的端到端测试
 build/          打包配方 + 各平台交接文档(git 忽略)
 ass/            图片素材
 ```

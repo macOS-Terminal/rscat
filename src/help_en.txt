@@ -1,4 +1,4 @@
-rscat 1.1.6-5 — lolcat that can output images (rewritten in Rust)
+rscat {VERSION} — lolcat that can output images (rewritten in Rust)
 Rainbow algorithm is byte-for-byte compatible with lolcat 100.0.1,
 plus image passthrough and pseudo-terminal run mode.
 
@@ -19,7 +19,7 @@ Options (same as lolcat):
   -d, --duration N  animation frames (default 12)
   -s, --speed F     animation frame rate (default 20.0)
   -i, --invert      foreground/background invert
-  -t, --truecolor   force 24-bit color (default: auto via COLORTERM, else 256 colors)
+  -t, --truecolor   force 24-bit color (default truecolor; COLORTERM containing "256" downgrades to 256 colors)
   -f, --force       force color even when stdout is not a tty (else passthrough, like lolcat)
 
 rscat extras:
@@ -34,6 +34,7 @@ rscat extras:
   -h, --help          show this help
   -V, --version       show version
 
-Note: no images in a pipe is a fastfetch limitation (it won't emit images to a non-tty),
-use rscat -e fastfetch (built-in -e flag, no extra wrapper command needed).
+Note: fastfetch skips images when stdout is not a tty. The packaged shell integration
+wraps fastfetch, so `fastfetch | rscat` shows images too; without it, use
+`rscat -e fastfetch` (a real pty, built-in, no wrapper needed).
 Language: auto-follows the system (zh-CN/zh-TW/en/ja), override with --lang or RSCAT_LANG.

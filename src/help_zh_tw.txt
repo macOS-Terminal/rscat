@@ -1,4 +1,4 @@
-rscat 1.1.6-5 —— 能輸出圖片的 lolcat(Rust 重寫)
+rscat {VERSION} —— 能輸出圖片的 lolcat(Rust 重寫)
 彩虹演算法與 lolcat 100.0.1 逐位元組一致,另支援圖片直通與偽終端執行模式。
 
 用法:
@@ -18,7 +18,7 @@ rscat 1.1.6-5 —— 能輸出圖片的 lolcat(Rust 重寫)
   -d, --duration N  動畫幀數(預設 12)
   -s, --speed F     動畫幀率(預設 20.0)
   -i, --invert      前景/背景反轉
-  -t, --truecolor   強制 24 位色(預設按 COLORTERM 自動偵測,否則 256 色)
+  -t, --truecolor   強制 24 位色(預設真彩;僅當 COLORTERM 含 "256" 時降級為 256 色)
   -f, --force       stdout 非終端時也強制上色(否則原樣直通,同 lolcat)
 
 rscat 附加:
@@ -33,6 +33,7 @@ rscat 附加:
   -h, --help          顯示本說明
   -V, --version       顯示版本
 
-說明:管線裡出不來圖片是 fastfetch 的限制(非 tty 就不發圖片),
-請用 rscat -e fastfetch(本體 -e 旗標,無需另裝包裝命令)。
+說明:管線裡出不來圖片是 fastfetch 的限制(非 tty 就不發圖片)。
+安裝包內建的 shell 整合會包裝 fastfetch,使 `fastfetch | rscat` 也能出圖;
+未安裝時請用 rscat -e fastfetch(偽終端,本體內建,無需包裝)。
 語言:簡中/繁中/英文/日文自動跟隨系統,也可用 --lang 或 RSCAT_LANG 指定。
