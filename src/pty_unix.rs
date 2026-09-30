@@ -92,8 +92,8 @@ fn stdin_cbreak() -> Option<libc::termios> {
         let mut t = saved;
         t.c_lflag &= !(libc::ICANON | libc::ECHO);
         t.c_iflag &= !libc::ICRNL;
-        t.c_cc[libc::VMIN as usize] = 1;
-        t.c_cc[libc::VTIME as usize] = 0;
+        t.c_cc[libc::VMIN] = 1;
+        t.c_cc[libc::VTIME] = 0;
         if libc::tcsetattr(libc::STDIN_FILENO, libc::TCSADRAIN, &t) != 0 {
             return None;
         }
@@ -249,7 +249,7 @@ fn set_comm(_name: &str) {}
 /// 返回 true 表示"已重新 exec 过"(调用方继续正常流程即可);exec 成功不返回。
 #[cfg(target_os = "macos")]
 pub fn reexec_as(name: &str) -> bool {
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 
     /// 标记:该 env 存在即表示"已经伪装过,别再 exec 一次"。
     const MARKER: &str = "RSCAT_COMM_AS";
@@ -272,10 +272,15 @@ pub fn reexec_as(name: &str) -> bool {
         Err(_) => return false,
     };
 
-    // 每次独立目录,避免并发 rscat 互相踩;exec 后 PID 不变,新进程可据同一
-    // PID 找回并清理它。
+    // 目录名含 pid、可预测,多用户 /tmp 下可能被他人预置(symlink 攻击 /
+    // TOCTOU)。先清掉同名旧路径,再以 0700 独占创建;任一失败就放弃伪装
+    // (退回原进程名,功能降级但安全)。exec 后 PID 不变,新进程据同一 PID
+    // 找回并清理它。
     let dir = std::env::temp_dir().join(format!("rscat-comm-{}", std::process::id()));
-    if std::fs::create_dir_all(&dir).is_err() {
+    let _ = std::fs::remove_dir_all(&dir);
+    let mut builder = std::fs::DirBuilder::new();
+    builder.mode(0o700);
+    if builder.create(&dir).is_err() {
         return false;
     }
     let link = dir.join(name);
@@ -819,8 +824,8 @@ mod tests {
             let mut rt: libc::termios = std::mem::zeroed();
             assert_eq!(libc::tcgetattr(sfd, &mut rt), 0);
             rt.c_lflag &= !(libc::ICANON | libc::ECHO);
-            rt.c_cc[libc::VMIN as usize] = 0;
-            rt.c_cc[libc::VTIME as usize] = 0;
+            rt.c_cc[libc::VMIN] = 0;
+            rt.c_cc[libc::VTIME] = 0;
             assert_eq!(libc::tcsetattr(sfd, libc::TCSANOW, &rt), 0);
             let fl = libc::fcntl(sfd, libc::F_GETFL, 0);
             libc::fcntl(sfd, libc::F_SETFL, fl | libc::O_NONBLOCK);

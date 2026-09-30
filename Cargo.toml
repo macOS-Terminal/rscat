@@ -2,6 +2,11 @@
 name = "rscat"
 version = "1.1.6"
 edition = "2021"
+authors = ["Linux-System-0 <ls0_1@qq.com>"]
+repository = "https://github.com/Linux-System-0/rscat"
+readme = "README.md"
+# 取依赖中最高的 MSRV(image 0.25.10 需 1.88);本仓库自身未用到更新的特性。
+rust-version = "1.88"
 description = "Rainbow cat: lolcat-compatible colorizer with image output (kitty/iTerm2), PTY run mode and rainbow shell sessions"
 license = "MIT"
 keywords = ["lolcat", "rainbow", "terminal", "kitty", "color"]
@@ -12,7 +17,9 @@ name = "rscat"
 path = "src/main.rs"
 
 [dependencies]
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif"] }
+# bmp/webp 与 image.rs 的 sniff_image 保持一致:嗅探认下的格式必须真能解码,
+# 否则 kitty 协议下 `rscat x.bmp` 会走到 as_png 失败。
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -196,10 +196,6 @@ pub fn fallback() -> Shell {
     }
 }
 
-pub fn detect_or_fallback() -> Shell {
-    detect().unwrap_or_else(fallback)
-}
-
 /// sh/bash/zsh/fish 通用的单引号转义。
 fn quote_sh(s: &str) -> String {
     format!("'{}'", s.replace('\'', r"'\''"))

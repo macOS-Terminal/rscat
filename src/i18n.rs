@@ -1,6 +1,11 @@
 //! i18n: 简体中文 / 繁體中文 / English / 日本語。
 //! 语言检测优先级: `--lang` > `RSCAT_LANG` > `LC_ALL` > `LC_MESSAGES` > `LANG` > en。
 
+/// 用户可见版本号(不含 `rscat ` 前缀):Cargo 基础版本 + 打包修订号。
+/// 全项目唯一来源:`--version` 与 help 首行都取这里;打包脚本(build/,本地)
+/// 也按这个修订号命名产物。升级时改 `Cargo.toml` 的 version,或改这里的 -N。
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-5");
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
     ZhCn,
@@ -58,8 +63,6 @@ impl Lang {
 /// 所有用户可见字符串。新增文案时请四个语言一起加。
 #[derive(Debug, Clone, Copy)]
 pub enum Msg {
-    // ---- 通用 ----
-    Version,
     // ---- 错误 ----
     ErrNeedUnixPty,
     ErrReadFile,
@@ -85,10 +88,6 @@ pub fn t(lang: Lang, m: Msg) -> &'static str {
     use Lang::*;
     use Msg::*;
     match (lang, m) {
-        // ---- 通用 ----
-        // 版本号 1.1.6-5(升版本时:改 Cargo.toml version + 此处 + 打包脚本)
-        // 格式固定为 "rscat <版本>",与验收标准 `rscat --version` 输出一致。
-        (_, Version) => "rscat 1.1.6-5",
         // ---- 错误 ----
         (ZhCn, ErrNeedUnixPty) => "rscat: 运行模式需要 Unix pty 支持,当前平台暂不支持",
         (ZhTw, ErrNeedUnixPty) => "rscat: 執行模式需要 Unix pty 支援,目前平台暫不支援",
@@ -98,10 +97,10 @@ pub fn t(lang: Lang, m: Msg) -> &'static str {
         (ZhTw, ErrReadFile) => "rscat: 讀不了",
         (En, ErrReadFile) => "rscat: cannot read",
         (Ja, ErrReadFile) => "rscat: 読めません",
-        (ZhCn, ErrNoDecode) => "rscat: 无法解码(需要 PNG/JPEG/GIF,或改用 --proto iterm)",
-        (ZhTw, ErrNoDecode) => "rscat: 無法解碼(需要 PNG/JPEG/GIF,或改用 --proto iterm)",
-        (En, ErrNoDecode) => "rscat: cannot decode (need PNG/JPEG/GIF, or use --proto iterm)",
-        (Ja, ErrNoDecode) => "rscat: デコードできません(PNG/JPEG/GIF が必要、または --proto iterm を使用)",
+        (ZhCn, ErrNoDecode) => "rscat: 无法解码(需要 PNG/JPEG/GIF/BMP/WebP,或改用 --proto iterm)",
+        (ZhTw, ErrNoDecode) => "rscat: 無法解碼(需要 PNG/JPEG/GIF/BMP/WebP,或改用 --proto iterm)",
+        (En, ErrNoDecode) => "rscat: cannot decode (need PNG/JPEG/GIF/BMP/WebP, or use --proto iterm)",
+        (Ja, ErrNoDecode) => "rscat: デコードできません(PNG/JPEG/GIF/BMP/WebP が必要、または --proto iterm を使用)",
         (ZhCn, ErrConflictAlwaysExec) => "rscat: -a(会话)与 -e(执行)不能同时用",
         (ZhTw, ErrConflictAlwaysExec) => "rscat: -a(工作階段)與 -e(執行)不能同時用",
         (En, ErrConflictAlwaysExec) => "rscat: -a (session) and -e (exec) cannot be combined",
@@ -163,11 +162,39 @@ pub fn t(lang: Lang, m: Msg) -> &'static str {
 }
 
 /// 多语言帮助全文(-h)。与 lolcat 选项兼容,另加 rscat 特有项。
+/// 文本里的 `{VERSION}` 占位由 `VERSION` 常量填充,避免在四个文件里各写一份版本号。
 pub fn help(lang: Lang) -> String {
-    match lang {
-        Lang::ZhCn => include_str!("help_zh_cn.txt").to_string(),
-        Lang::ZhTw => include_str!("help_zh_tw.txt").to_string(),
-        Lang::En => include_str!("help_en.txt").to_string(),
-        Lang::Ja => include_str!("help_ja.txt").to_string(),
+    let raw = match lang {
+        Lang::ZhCn => include_str!("help_zh_cn.txt"),
+        Lang::ZhTw => include_str!("help_zh_tw.txt"),
+        Lang::En => include_str!("help_en.txt"),
+        Lang::Ja => include_str!("help_ja.txt"),
+    };
+    raw.replace("{VERSION}", VERSION)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 版本号单一来源:Cargo 基础版本 + 打包修订号。
+    #[test]
+    fn version_is_single_sourced() {
+        assert_eq!(VERSION, concat!(env!("CARGO_PKG_VERSION"), "-5"));
+    }
+
+    /// help 文本里的 {VERSION} 占位必须被填掉,四种语言都不得残留。
+    #[test]
+    fn help_substitutes_version_placeholder() {
+        for lang in [Lang::ZhCn, Lang::ZhTw, Lang::En, Lang::Ja] {
+            let h = help(lang);
+            assert!(
+                h.starts_with("rscat "),
+                "help must start with 'rscat ': {:?}",
+                &h[..h.len().min(20)]
+            );
+            assert!(h.contains(VERSION), "help must contain the version");
+            assert!(!h.contains("{VERSION}"), "placeholder must be substituted");
+        }
     }
 }

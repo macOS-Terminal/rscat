@@ -66,6 +66,8 @@ pub struct LolcatFilter {
 }
 
 impl LolcatFilter {
+    // 8 个参数都是独立旋钮;包成结构体只是把参数搬个家,反而隔一层,故保留。
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         out: Box<dyn Write>,
         freq: f64,
@@ -449,6 +451,112 @@ fn strip_animate_csi(run: &[u8]) -> Vec<u8> {
     }
     out
 }
+
+/// 从字符串开头剥掉一条 SGR 序列(\e[...m);不是 SGR 时返回 None。
+#[cfg(test)]
+fn strip_one_sgr(s: &str) -> Option<&str> {
+    let b = s.as_bytes();
+    if b.len() < 3 || b[0] != 0x1B || b[1] != b'[' {
+        return None;
+    }
+    let mut j = 2;
+    while j < b.len() && !(0x40..=0x7E).contains(&b[j]) {
+        j += 1;
+    }
+    if j < b.len() && b[j] == b'm' {
+        Some(&s[j + 1..])
+    } else {
+        None
+    }
+}
+
+/// 块元素字符:fastfetch/chafa 等把图片逐格画成这些字符(每格自带颜色),
+/// 而普通文字与 ASCII art(///// 等)不会用到它们。用于区分"图片像素"与文字。
+fn is_picture_cell(c: char) -> bool {
+    matches!(c,
+        '█' | '▀' | '▄' | '▌' | '▐' | '░' | '▒' | '▓'
+        | '▁' | '▂' | '▃' | '▅' | '▆' | '▇' | '▉' | '▊' | '▋' | '▍' | '▎' | '▏' | '▕' | '▔'
+        | '▖' | '▗' | '▘' | '▙' | '▚' | '▛' | '▜' | '▝' | '▞' | '▟'
+    )
+}
+
+/// 扫描一段转义序列(r 或多个连跑的序列),更新生产者颜色状态。
+/// 只认 SGR(\e[...m):背景 48(2;r;g;b 与 5;n)及 40-47/100-107 置 bg,
+/// 前景 38(2;r;g;b 与 5;n)及 30-37/90-97 置 fg;
+/// 0 与空参数(\e[m)同时复位两者,39 复位前景,49 复位背景。
+/// 38/48 的颜色分量必须整体跳过,否则 `48;2;0;120;212` 里的 0 会被误当复位。
+fn scan_sgr_state(run: &[u8], bg: &mut bool, fg: &mut bool) {
+    let mut i = 0;
+    while i < run.len() {
+        if run[i] != 0x1B || i + 1 >= run.len() || run[i + 1] != b'[' {
+            i += 1;
+            continue;
+        }
+        let start = i + 2;
+        let mut j = start;
+        while j < run.len() && !(0x40..=0x7E).contains(&run[j]) {
+            j += 1;
+        }
+        if j >= run.len() {
+            return; // 残缺序列(不会出现在 seq_done 的 run 里,防御用)
+        }
+        if run[j] == b'm' {
+            apply_sgr(&run[start..j], bg, fg);
+        }
+        i = j + 1;
+    }
+}
+
+/// 应用一条 SGR 参数串(`\e[` 与 `m` 之间的字节)到生产者颜色状态。
+fn apply_sgr(params: &[u8], bg: &mut bool, fg: &mut bool) {
+    if params.is_empty() {
+        *bg = false;
+        *fg = false;
+        return;
+    }
+    let mut toks: Vec<u32> = Vec::with_capacity(8);
+    let mut cur: u32 = 0;
+    for &b in params {
+        match b {
+            b'0'..=b'9' => cur = cur.saturating_mul(10) + (b - b'0') as u32,
+            b';' | b':' => {
+                toks.push(cur); // 空参数按 0(复位)
+                cur = 0;
+            }
+            _ => return, // 非数字参数,放弃解析(保持状态不变)
+        }
+    }
+    toks.push(cur);
+    let mut k = 0;
+    while k < toks.len() {
+        match toks[k] {
+            0 => {
+                *bg = false;
+                *fg = false;
+            }
+            39 => *fg = false,
+            49 => *bg = false,
+            30..=37 | 90..=97 => *fg = true,
+            40..=47 | 100..=107 => *bg = true,
+            38 | 48 => {
+                // 先记住这是前景(38)还是背景(48),再整体跳过颜色分量,
+                // 否则 `48;2;0;120;212` 里的 0 会被误当复位。
+                let is_fg = toks[k] == 38;
+                match toks.get(k + 1) {
+                    Some(2) => k += 4, // 2;r;g;b
+                    Some(5) => k += 2, // 5;n
+                    _ => {}
+                }
+                if is_fg {
+                    *fg = true;
+                } else {
+                    *bg = true;
+                }
+            }
+            _ => {}
+        }
+        k += 1;
+    }}
 
 #[cfg(test)]
 mod tests {
@@ -839,109 +947,3 @@ mod tests {
         }
     }
 }
-
-/// 从字符串开头剥掉一条 SGR 序列(\e[...m);不是 SGR 时返回 None。
-#[cfg(test)]
-fn strip_one_sgr(s: &str) -> Option<&str> {
-    let b = s.as_bytes();
-    if b.len() < 3 || b[0] != 0x1B || b[1] != b'[' {
-        return None;
-    }
-    let mut j = 2;
-    while j < b.len() && !(0x40..=0x7E).contains(&b[j]) {
-        j += 1;
-    }
-    if j < b.len() && b[j] == b'm' {
-        Some(&s[j + 1..])
-    } else {
-        None
-    }
-}
-
-/// 块元素字符:fastfetch/chafa 等把图片逐格画成这些字符(每格自带颜色),
-/// 而普通文字与 ASCII art(///// 等)不会用到它们。用于区分"图片像素"与文字。
-fn is_picture_cell(c: char) -> bool {
-    matches!(c,
-        '█' | '▀' | '▄' | '▌' | '▐' | '░' | '▒' | '▓'
-        | '▁' | '▂' | '▃' | '▅' | '▆' | '▇' | '▉' | '▊' | '▋' | '▍' | '▎' | '▏' | '▕' | '▔'
-        | '▖' | '▗' | '▘' | '▙' | '▚' | '▛' | '▜' | '▝' | '▞' | '▟'
-    )
-}
-
-/// 扫描一段转义序列(r 或多个连跑的序列),更新生产者颜色状态。
-/// 只认 SGR(\e[...m):背景 48(2;r;g;b 与 5;n)及 40-47/100-107 置 bg,
-/// 前景 38(2;r;g;b 与 5;n)及 30-37/90-97 置 fg;
-/// 0 与空参数(\e[m)同时复位两者,39 复位前景,49 复位背景。
-/// 38/48 的颜色分量必须整体跳过,否则 `48;2;0;120;212` 里的 0 会被误当复位。
-fn scan_sgr_state(run: &[u8], bg: &mut bool, fg: &mut bool) {
-    let mut i = 0;
-    while i < run.len() {
-        if run[i] != 0x1B || i + 1 >= run.len() || run[i + 1] != b'[' {
-            i += 1;
-            continue;
-        }
-        let start = i + 2;
-        let mut j = start;
-        while j < run.len() && !(0x40..=0x7E).contains(&run[j]) {
-            j += 1;
-        }
-        if j >= run.len() {
-            return; // 残缺序列(不会出现在 seq_done 的 run 里,防御用)
-        }
-        if run[j] == b'm' {
-            apply_sgr(&run[start..j], bg, fg);
-        }
-        i = j + 1;
-    }
-}
-
-/// 应用一条 SGR 参数串(`\e[` 与 `m` 之间的字节)到生产者颜色状态。
-fn apply_sgr(params: &[u8], bg: &mut bool, fg: &mut bool) {
-    if params.is_empty() {
-        *bg = false;
-        *fg = false;
-        return;
-    }
-    let mut toks: Vec<u32> = Vec::with_capacity(8);
-    let mut cur: u32 = 0;
-    for &b in params {
-        match b {
-            b'0'..=b'9' => cur = cur.saturating_mul(10) + (b - b'0') as u32,
-            b';' | b':' => {
-                toks.push(cur); // 空参数按 0(复位)
-                cur = 0;
-            }
-            _ => return, // 非数字参数,放弃解析(保持状态不变)
-        }
-    }
-    toks.push(cur);
-    let mut k = 0;
-    while k < toks.len() {
-        match toks[k] {
-            0 => {
-                *bg = false;
-                *fg = false;
-            }
-            39 => *fg = false,
-            49 => *bg = false,
-            30..=37 | 90..=97 => *fg = true,
-            40..=47 | 100..=107 => *bg = true,
-            38 | 48 => {
-                // 先记住这是前景(38)还是背景(48),再整体跳过颜色分量,
-                // 否则 `48;2;0;120;212` 里的 0 会被误当复位。
-                let is_fg = toks[k] == 38;
-                match toks.get(k + 1) {
-                    Some(2) => k += 4, // 2;r;g;b
-                    Some(5) => k += 2, // 5;n
-                    _ => {}
-                }
-                if is_fg {
-                    *fg = true;
-                } else {
-                    *bg = true;
-                }
-            }
-            _ => {}
-        }
-        k += 1;
-    }}

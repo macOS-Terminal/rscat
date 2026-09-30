@@ -1,4 +1,4 @@
-rscat 1.1.6-5 —— 画像も出せる lolcat(Rust による書き直し)
+rscat {VERSION} —— 画像も出せる lolcat(Rust による書き直し)
 虹アルゴリズムは lolcat 100.0.1 とバイト単位で互換、
 画像パススルーと疑似端末実行モードを追加。
 
@@ -19,7 +19,7 @@ rscat 1.1.6-5 —— 画像も出せる lolcat(Rust による書き直し)
   -d, --duration N  アニメのフレーム数(既定 12)
   -s, --speed F     アニメのフレームレート(既定 20.0)
   -i, --invert      前景/背景の反転
-  -t, --truecolor   24bit カラー強制(既定は COLORTERM で自動判定、他は 256 色)
+  -t, --truecolor   24bit カラーを強制(既定は真彩、COLORTERM に "256" が含まれる場合のみ 256 色)
   -f, --force       stdout が端末でなくても強制着色(既定は素通し、lolcat と同じ)
 
 rscat 追加分:
@@ -34,6 +34,7 @@ rscat 追加分:
   -h, --help          このヘルプを表示
   -V, --version       バージョンを表示
 
-注:パイプで画像が出ないのは fastfetch の制限です(tty 以外に画像を出しません)、
-rscat -e fastfetch を使ってください(本体の -e フラグ、別ラッパー不要)。
+注:パイプで画像が出ないのは fastfetch の制限です(tty 以外に画像を出しません)。
+パッケージ付属のシェル統合が fastfetch をラップするため `fastfetch | rscat` でも
+画像が出ます。未導入なら rscat -e fastfetch(実 pty、本体内蔵、ラッパー不要)を。
 言語:システムに自動追従(簡中/繁中/英語/日本語)、--lang または RSCAT_LANG で指定可。

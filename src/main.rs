@@ -15,6 +15,7 @@ mod pty_unix;
 mod pty_windows;
 
 use std::io::{IsTerminal, Read, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::filter::LolcatFilter;
 use crate::i18n::{Lang, Msg, help, t};
@@ -245,8 +246,20 @@ fn terminal_restore(session: bool) {
     let _ = std::io::stdout().flush();
 }
 
-fn pick_shell() -> shell_detect::Shell {
-    shell_detect::detect_or_fallback()
+/// 回退到 $SHELL//bin/sh 时只提示一次:-a/-e 里 pick_shell 会被调用两次,
+/// 不加锁会重复刷屏。
+static SHELL_FALLBACK_WARNED: AtomicBool = AtomicBool::new(false);
+
+fn pick_shell(lang: Lang) -> shell_detect::Shell {
+    match shell_detect::detect() {
+        Some(s) => s,
+        None => {
+            if !SHELL_FALLBACK_WARNED.swap(true, Ordering::Relaxed) {
+                eprintln!("{}", t(lang, Msg::ShellFallback));
+            }
+            shell_detect::fallback()
+        }
+    }
 }
 
 /// 中文 Windows 控制台默认代码页 936(GBK):ConPTY 按 GBK 解码我们的 UTF-8 输出,
@@ -296,7 +309,7 @@ fn main() {
         return;
     }
     if o.version {
-        println!("{}", t(lang, Msg::Version));
+        println!("rscat {}", i18n::VERSION);
         return;
     }
     if let Some(sh) = &o.init {
@@ -344,7 +357,7 @@ fn main() {
         // title_push 之前 —— exec 保留 PID 但这两步有外部可见副作用,先做会
         // 在 exec 后重复执行一次。Linux 走 prctl,不需要 exec。
         {
-            let sh = pick_shell();
+            let sh = pick_shell(lang);
             if !reexec_as(&sh.name()) {
                 eprintln!("{}", t(lang, Msg::ErrExecFailed));
                 std::process::exit(127);
@@ -359,13 +372,13 @@ fn main() {
         let seed = if o.seed != 0 { o.seed as u64 } else { random_seed() };
         let out: Box<dyn Write> = Box::new(std::io::stdout().lock());
         let mut flt = make_filter(&o, seed, out);
-        let sh = pick_shell();
+        let sh = pick_shell(lang);
         let (sargv, senv) = shell_detect::session_argv(&sh);
         title_push();
         let rc = pty_run(&sargv, &senv, Some(&sh.name()), &mut flt, Some(&persist::session_marker()), true);
         flt.finish(std::io::stdout().is_terminal());
         terminal_restore(true);
-        persist::session_stop();
+        persist::session_clear_own();
         eprintln!("{}", t(lang, Msg::SessionExit));
         std::process::exit(rc);
     }
@@ -395,7 +408,7 @@ fn main() {
         // macOS:同 -a,先以调用 shell 的名字重新 exec 自己(见 reexec_as)。
         // 放在 title_push 之前,避免 exec 后重复推送一次标题。
         {
-            let sh = pick_shell();
+            let sh = pick_shell(lang);
             if !reexec_as(&sh.name()) {
                 eprintln!("{}", t(lang, Msg::ErrExecFailed));
                 std::process::exit(127);
@@ -405,7 +418,7 @@ fn main() {
         let mut flt = make_filter(&o, seed, out);
         // 用真实调用 shell 包一层:fastfetch 等按父进程报 SHELL,
         // 直接 spawn 会显示 "rscat";包一层后显示 fish/zsh/bash 等本尊。
-        let sh = pick_shell();
+        let sh = pick_shell(lang);
         let eargv = shell_detect::exec_argv(&sh, &o.exec);
         let eenv = shell_detect::exec_env(&sh);
         title_push();
@@ -471,7 +484,7 @@ fn main() {
                     }
                     Err(()) => {
                         eprintln!("{} {path}", t(lang, Msg::ErrNoDecode));
-                        std::process::exit(1);
+                        continue;
                     }
                 }
             } else {
