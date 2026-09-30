@@ -4,6 +4,11 @@
 # 产物发布到 GitHub Releases;脚本与文档只存本地。
 /build/
 
+# 宣发素材(提示词/文案草稿):只存本地,不随仓库发布。
+/docs/cover-prompt.md
+/docs/edit-prompt.md
+/docs/video-ep2-plan.md
+
 # 恢复/编辑器残留
 .DS_Store
 *.orig

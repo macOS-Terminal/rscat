@@ -149,6 +149,13 @@ pub fn as_png(data: &[u8]) -> Result<(Vec<u8>, u32, u32), ()> {
 }
 
 /// kitty 图形协议:PNG base64 分块传输,C=1 固定光标,显示完手动换行。
+///
+/// `f=100` 是**必须**的:它告诉 kitty「payload 是 PNG 格式」。
+/// 此前这里写成 `f=24`(原始 24 位 RGB 像素),而实际传的是 PNG 字节 ——
+/// kitty 按 RGB 去解析 PNG 数据,尺寸与字节数都对不上,于是静默丢弃整条
+/// 图形命令:终端里只剩那行彩虹文件名,图片完全不显示。
+/// 该错误的隐蔽之处在于**协议结构本身合法**(分块、m= 标记、ST 结尾都对),
+/// 只是格式号与实际数据不符,所以任何只做"结构检查"的测试都发现不了。
 pub fn send_kitty(out: &mut dyn Write, png: &[u8]) {
     let b64 = base64_encode(png);
     let raw = b64.as_bytes();
@@ -159,7 +166,7 @@ pub fn send_kitty(out: &mut dyn Write, png: &[u8]) {
     }
     let last = pieces.len() - 1;
     for (n, piece) in pieces.iter().enumerate() {
-        let mut head = b"\x1b_Ga=T,f=24,q=2,C=1".to_vec();
+        let mut head = b"\x1b_Ga=T,f=100,q=2,C=1".to_vec();
         if pieces.len() > 1 {
             head.extend_from_slice(if n < last { b",m=1" } else { b",m=0" });
         }
@@ -260,5 +267,59 @@ mod tests {
             assert!(png.starts_with(PNG_MAGIC), "{name} must transcode to PNG");
             assert!(w > 0 && h > 0, "{name} must report dimensions");
         }
+    }
+
+    /// kitty 图形命令的 `f=` 必须与 payload 实际格式一致。
+    ///
+    /// 回归测试(真机 bug:`rscat x.jpg` 只打印彩虹文件名、图片完全不显示):
+    /// `send_kitty` 传的 payload 是 **PNG**,但头部曾写成 `f=24`
+    /// —— 按 kitty 图形协议,`f=24` 表示「原始 24 位 RGB 像素」,`f=100` 才是
+    /// 「PNG 数据」。kitty 按 RGB 去解析 PNG 字节,算出零宽高后直接丢弃整条
+    /// 命令,并且**不报错**(实测 q=0 时才回 `EINVAL:Zero width/height`),
+    /// 所以终端里只剩文件名那一行。
+    ///
+    /// 该 bug 能长期潜伏,是因为旧测试只断言「有 `\x1b_G` 块」「分块 m= 标记
+    /// 正确」—— 协议**结构**完全合法,错的只是**格式号与数据的匹配**。
+    /// 因此这里必须双向断言:`f=100` 存在 **且** `f=24` 不存在。
+    #[test]
+    fn kitty_header_format_matches_png_payload() {
+        // 造一个最小合法 PNG(1x1 红色)
+        let png = {
+            let mut v = Vec::new();
+            v.extend_from_slice(PNG_MAGIC);
+            v
+        };
+        let mut out: Vec<u8> = Vec::new();
+        send_kitty(&mut out, &png);
+        let s = String::from_utf8_lossy(&out);
+
+        assert!(
+            s.contains("f=100"),
+            "kitty payload is PNG, so the header must declare f=100 (got: {:?})",
+            &s[..s.len().min(80)]
+        );
+        assert!(
+            !s.contains("f=24") && !s.contains("f=32"),
+            "f=24/f=32 mean raw RGB/RGBA pixels — declaring them for a PNG payload \
+             makes kitty silently drop the image (got: {:?})",
+            &s[..s.len().min(80)]
+        );
+
+        // 原始像素格式必须显式排除:它们会让 kitty 按像素解析 PNG 字节。
+        // 同时确认 control data 与 payload 之间确有 `;` 分隔。
+        let apc_start = out.windows(3).position(|w| w == b"\x1b_G").expect("APC present");
+        let semi = out[apc_start..].iter().position(|&b| b == b';').expect("; separates control data");
+        let control = &out[apc_start + 3..apc_start + semi];
+        let payload_starts = apc_start + semi + 1;
+        assert!(
+            out[payload_starts..].starts_with(b"iVBOR"),
+            "payload must be base64 PNG (starts with iVBOR), got {:?}",
+            &out[payload_starts..(payload_starts + 8).min(out.len())]
+        );
+        assert!(
+            control.starts_with(b"a=T"),
+            "transfer action must be a=T, got {:?}",
+            String::from_utf8_lossy(control)
+        );
     }
 }
