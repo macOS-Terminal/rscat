@@ -117,34 +117,34 @@ Prebuilt binaries for every supported platform are published on the
 
 | Platform | Architecture | File |
 |---|---|---|
-| Linux | x86_64 | `rscat-1.1.6-5-x86_64.pkg.tar.zst` / `rscat_1.1.6-5_amd64.deb` / `rscat-1.1.6-5.x86_64.rpm` |
-| Linux | aarch64 | `rscat-1.1.6-5-aarch64.pkg.tar.zst` / `rscat_1.1.6-5_arm64.deb` / `rscat-1.1.6-5.aarch64.rpm` |
-| FreeBSD | amd64 | `rscat-1.1.6-5-freebsd-amd64.pkg` |
-| FreeBSD | arm64 | `rscat-1.1.6-5-freebsd-arm64.pkg` |
-| macOS | arm64 | `rscat-1.1.6-5-macos-aarch64.pkg` |
-| macOS | x86_64 | `rscat-1.1.6-5-macos-x86_64.pkg` |
-| Windows | x86_64 | `rscat-1.1.6-5-windows-x86_64-setup.exe` (installer) / `.msi` |
-| Windows | aarch64 | `rscat-1.1.6-5-windows-aarch64.zip` (portable) |
+| Linux | x86_64 | `rscat-1.1.7-3-x86_64.pkg.tar.zst` / `rscat_1.1.7-3_amd64.deb` / `rscat-1.1.7-3.x86_64.rpm` |
+| Linux | aarch64 | `rscat-1.1.7-3-aarch64.pkg.tar.zst` / `rscat_1.1.7-3_arm64.deb` / `rscat-1.1.7-3.aarch64.rpm` |
+| FreeBSD | amd64 | `rscat-1.1.7-3-freebsd-amd64.pkg` |
+| FreeBSD | arm64 | `rscat-1.1.7-3-freebsd-arm64.pkg` |
+| macOS | arm64 | `rscat-1.1.7-3-macos-aarch64.pkg` |
+| macOS | x86_64 | `rscat-1.1.7-3-macos-x86_64.pkg` |
+| Windows | x86_64 | `rscat-1.1.7-3-windows-x86_64-setup.exe` (installer) / `.msi` |
+| Windows | aarch64 | `rscat-1.1.7-3-windows-aarch64.zip` (portable) |
 
 ### Linux
 
 ```bash
-sudo pacman -U rscat-1.1.6-5-x86_64.pkg.tar.zst    # Arch / CachyOS
-sudo apt install ./rscat_1.1.6-5_amd64.deb        # Debian / Ubuntu
-sudo rpm -Uvh rscat-1.1.6-5.x86_64.rpm            # Fedora / openSUSE
+sudo pacman -U rscat-1.1.7-3-x86_64.pkg.tar.zst    # Arch / CachyOS
+sudo apt install ./rscat_1.1.7-3_amd64.deb        # Debian / Ubuntu
+sudo rpm -Uvh rscat-1.1.7-3.x86_64.rpm            # Fedora / openSUSE
 ```
 
 ### FreeBSD
 
 ```bash
-pkg add ./rscat-1.1.6-5-freebsd-amd64.pkg
+pkg add ./rscat-1.1.7-3-freebsd-amd64.pkg
 ```
 
 ### macOS
 
 ```bash
-sudo installer -pkg rscat-1.1.6-5-macos-aarch64.pkg -target /   # Apple Silicon
-sudo installer -pkg rscat-1.1.6-5-macos-x86_64.pkg  -target /   # Intel
+sudo installer -pkg rscat-1.1.7-3-macos-aarch64.pkg -target /   # Apple Silicon
+sudo installer -pkg rscat-1.1.7-3-macos-x86_64.pkg  -target /   # Intel
 ```
 
 ### Windows
@@ -152,8 +152,8 @@ sudo installer -pkg rscat-1.1.6-5-macos-x86_64.pkg  -target /   # Intel
 Run the installer, or install the MSI from a terminal:
 
 ```powershell
-.\rscat-1.1.6-5-windows-x86_64-setup.exe        # Inno Setup installer
-msiexec /i rscat-1.1.6-5-windows-x86_64.msi     # WiX MSI
+.\rscat-1.1.7-3-windows-x86_64-setup.exe        # Inno Setup installer
+msiexec /i rscat-1.1.7-3-windows-x86_64.msi     # WiX MSI
 ```
 
 Both put `rscat` in `Program Files\rscat`, add it to your user `PATH` (removed

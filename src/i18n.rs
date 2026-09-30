@@ -4,7 +4,7 @@
 /// 用户可见版本号(不含 `rscat ` 前缀):Cargo 基础版本 + 打包修订号。
 /// 全项目唯一来源:`--version` 与 help 首行都取这里;打包脚本(build/,本地)
 /// 也按这个修订号命名产物。升级时改 `Cargo.toml` 的 version,或改这里的 -N。
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-5");
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-3");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lang {
@@ -180,7 +180,7 @@ mod tests {
     /// 版本号单一来源:Cargo 基础版本 + 打包修订号。
     #[test]
     fn version_is_single_sourced() {
-        assert_eq!(VERSION, concat!(env!("CARGO_PKG_VERSION"), "-5"));
+        assert_eq!(VERSION, concat!(env!("CARGO_PKG_VERSION"), "-3"));
     }
 
     /// help 文本里的 {VERSION} 占位必须被填掉,四种语言都不得残留。

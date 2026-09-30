@@ -105,34 +105,34 @@ rscat -e fastfetch      # 运行模式:在伪终端里跑命令,图片与彩虹�
 
 | 平台 | 架构 | 文件 |
 |---|---|---|
-| Linux | x86_64 | `rscat-1.1.6-5-x86_64.pkg.tar.zst` / `rscat_1.1.6-5_amd64.deb` / `rscat-1.1.6-5.x86_64.rpm` |
-| Linux | aarch64 | `rscat-1.1.6-5-aarch64.pkg.tar.zst` / `rscat-1.1.6-5_arm64.deb` / `rscat-1.1.6-5.aarch64.rpm` |
-| FreeBSD | amd64 | `rscat-1.1.6-5-freebsd-amd64.pkg` |
-| FreeBSD | arm64 | `rscat-1.1.6-5-freebsd-arm64.pkg` |
-| macOS | arm64 | `rscat-1.1.6-5-macos-aarch64.pkg` |
-| macOS | x86_64 | `rscat-1.1.6-5-macos-x86_64.pkg` |
-| Windows | x86_64 | `rscat-1.1.6-5-windows-x86_64-setup.exe`(安装器)/ `.msi` |
-| Windows | aarch64 | `rscat-1.1.6-5-windows-aarch64.zip`(绿色版) |
+| Linux | x86_64 | `rscat-1.1.7-3-x86_64.pkg.tar.zst` / `rscat_1.1.7-3_amd64.deb` / `rscat-1.1.7-3.x86_64.rpm` |
+| Linux | aarch64 | `rscat-1.1.7-3-aarch64.pkg.tar.zst` / `rscat-1.1.7-3_arm64.deb` / `rscat-1.1.7-3.aarch64.rpm` |
+| FreeBSD | amd64 | `rscat-1.1.7-3-freebsd-amd64.pkg` |
+| FreeBSD | arm64 | `rscat-1.1.7-3-freebsd-arm64.pkg` |
+| macOS | arm64 | `rscat-1.1.7-3-macos-aarch64.pkg` |
+| macOS | x86_64 | `rscat-1.1.7-3-macos-x86_64.pkg` |
+| Windows | x86_64 | `rscat-1.1.7-3-windows-x86_64-setup.exe`(安装器)/ `.msi` |
+| Windows | aarch64 | `rscat-1.1.7-3-windows-aarch64.zip`(绿色版) |
 
 ### Linux
 
 ```bash
-sudo pacman -U rscat-1.1.6-5-x86_64.pkg.tar.zst    # Arch / CachyOS
-sudo apt install ./rscat_1.1.6-5_amd64.deb        # Debian / Ubuntu
-sudo rpm -Uvh rscat-1.1.6-5.x86_64.rpm            # Fedora / openSUSE
+sudo pacman -U rscat-1.1.7-3-x86_64.pkg.tar.zst    # Arch / CachyOS
+sudo apt install ./rscat_1.1.7-3_amd64.deb        # Debian / Ubuntu
+sudo rpm -Uvh rscat-1.1.7-3.x86_64.rpm            # Fedora / openSUSE
 ```
 
 ### FreeBSD
 
 ```bash
-pkg add ./rscat-1.1.6-5-freebsd-amd64.pkg
+pkg add ./rscat-1.1.7-3-freebsd-amd64.pkg
 ```
 
 ### macOS
 
 ```bash
-sudo installer -pkg rscat-1.1.6-5-macos-aarch64.pkg -target /   # Apple Silicon
-sudo installer -pkg rscat-1.1.6-5-macos-x86_64.pkg  -target /   # Intel
+sudo installer -pkg rscat-1.1.7-3-macos-aarch64.pkg -target /   # Apple Silicon
+sudo installer -pkg rscat-1.1.7-3-macos-x86_64.pkg  -target /   # Intel
 ```
 
 ### Windows
@@ -140,8 +140,8 @@ sudo installer -pkg rscat-1.1.6-5-macos-x86_64.pkg  -target /   # Intel
 双击运行安装器,或在终端里装 MSI:
 
 ```powershell
-.\rscat-1.1.6-5-windows-x86_64-setup.exe        # Inno Setup 安装器
-msiexec /i rscat-1.1.6-5-windows-x86_64.msi     # WiX MSI
+.\rscat-1.1.7-3-windows-x86_64-setup.exe        # Inno Setup 安装器
+msiexec /i rscat-1.1.7-3-windows-x86_64.msi     # WiX MSI
 ```
 
 两者都会把 `rscat` 装到 `Program Files\rscat`,加入用户 `PATH`(卸载时移除),
